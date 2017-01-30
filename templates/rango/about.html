@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+{% load staticfiles %}
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>About</title>
+</head>
+<body>
+<div>
+    I'm Rango and glad to see you <br/>
+    This tutorial has been put together by {{ name }}.
+</div>
+<div>
+    <a href="/rango/">Main</a> <br/>
+    <img src="{% static 'images/rango.jpg' %}" alt="Picture of Rango" />
+    <img src="{{ MEDIA_URL }}kitten.jpg" />
+</div>
+
+</body>
+</html>
