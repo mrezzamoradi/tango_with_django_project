@@ -16,6 +16,13 @@ class Category(models.Model):
 
     def save(self, *args, **kwargs):
         self.slug = slugify(self.name)
+
+        if self.views < 0:
+            self.views = 0
+
+        if self.likes < 0:
+            self.likes = 0
+
         super(Category, self).save(*args, **kwargs)
 
     def __str__(self):

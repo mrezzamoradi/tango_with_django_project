@@ -42,6 +42,7 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     'rango',
     'registration',
+    'bootstrap_toolkit',
 ]
 
 MIDDLEWARE_CLASSES = [
@@ -138,3 +139,7 @@ REGISTRATION_OPEN = True
 ACCOUNT_ACTIVATION_DAYS = 7
 REGISTRATIO_AUTO_LOGIN = True
 LOGIN_REDIRECT_URL = '/rango/'
+
+# Bootstrap toolkit
+BOOTSTRAP_JS_URL = '/static/js/bootstrap.js'
+BOOTSTRAP_CSS_URL = '/static/css/bootstrap.css'

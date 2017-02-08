@@ -1,32 +1,35 @@
-from django.shortcuts import render, get_object_or_404
+from django.shortcuts import render, get_object_or_404, redirect
 from rango.models import Category, Page
 from rango.forms import CategoryForm, PageForm, UserForm, UserProfileForm
 # from django.contrib.auth import authenticate, login, logout
 from django.contrib.auth.decorators import login_required
-# from django.http import HttpResponseRedirect, HttpResponse
-# from django.core.urlresolvers import reverse
+from django.http import HttpResponseRedirect, HttpResponse
+from django.core.urlresolvers import reverse
 from datetime import datetime
 from registration.backends.simple.views import RegistrationView
+from django.core import serializers
+
 
 # Create your views here.
 
 
 def index(request):
-    request.session.set_test_cookie()
     category_list = Category.objects.order_by('-likes')[:5]
     page_list = Page.objects.order_by('-views')[:5]
     context_dic = {'categories': category_list, 'pages': page_list}
 
     visitor_cookie_handler(request)
     context_dic['visits'] = request.session['visits']
+
+    if (request.method == 'GET') and ('cat_search' in request.GET):
+        query = request.GET['cat_search']
+        matched = Category.objects.filter(name__contains=query)
+        return HttpResponse(serializers.serialize('json', matched))
+
     return render(request, 'rango/index.html', context=context_dic)
 
 
 def about(request):
-    if request.session.test_cookie_worked():
-        print('TEST COOKIE WORKED!')
-        request.session.delete_test_cookie()
-
     context_dic = {'name': 'Reza Moradi'}
 
     visitor_cookie_handler(request)
@@ -36,13 +39,19 @@ def about(request):
 
 
 def show_category(request, category_name_slug):
-
     context_dic = {}
     try:
         category = Category.objects.get(slug=category_name_slug)
         pages = Page.objects.filter(category=category)
         context_dic['pages'] = pages
         context_dic['category'] = category
+        category.views += 1
+        category.save()
+
+        if (request.method == 'GET') and ('like' in request.GET):
+            category.likes += 1
+            category.save()
+            return HttpResponse(category.likes)
 
     except Category.DoesNotExist:
         context_dic['pages'] = None
@@ -87,38 +96,38 @@ def add_page(request, category_name_slug):
     return render(request, 'rango/add_page.html', {'form': form, 'category': category})
 
 
-# def register(request):
-#     registered = False
-#
-#     if request.method == 'POST':
-#         user_form = UserForm(request.POST)
-#         profile_form = UserProfileForm(request.POST)
-#
-#         if user_form.is_valid() and profile_form.is_valid():
-#             user = user_form.save()
-#             user.set_password(user.password)
-#             user.save()
-#
-#             profile = profile_form.save(commit=False)
-#             profile.user = user
-#
-#             if 'picture' in request.FILES:
-#                 profile.picture = request.FILES['picture']
-#
-#             profile.save()
-#             registered = True
-#         else:
-#             print(user_form.errors, profile_form.errors)
-#
-#     else:
-#         user_form = UserForm()
-#         profile_form = UserProfileForm()
-#
-#     return render(request, 'rango/register.html', {
-#         'user_form': user_form,
-#         'profile_form': profile_form,
-#         'registered': registered
-#     })
+def register_profile(request):
+    # registered = False
+
+    if request.method == 'POST':
+        # user_form = UserForm(request.POST)
+        profile_form = UserProfileForm(request.POST)
+
+        if profile_form.is_valid():
+            # user = user_form.save()
+            # user.set_password(user.password)
+            # user.save()
+
+            user = request.user
+            profile = profile_form.save(commit=False)
+            profile.user = user
+
+            if 'picture' in request.FILES:
+                profile.picture = request.FILES['picture']
+
+            profile.save()
+            # registered = True
+        else:
+            print(profile_form.errors)
+
+    else:
+        profile_form = UserProfileForm()
+
+    return render(request, 'rango/register.html', {
+        # 'user_form': user_form,
+        'profile_form': profile_form,
+        # 'registered': registered
+    })
 
 
 # def user_login(request):
@@ -171,4 +180,21 @@ def visitor_cookie_handler(request):
 
 class MyRegistrationView(RegistrationView):
     def get_success_url(self, user=None):
-        return '/rango/'
+        self.success_url = 'http://www.google.com'
+        return 'http://www.google.com'
+
+
+def track_url(request):
+    page_id = None
+
+    if (request.method == 'GET') and ('page_id' in request.GET):
+        page_id = request.GET['page_id']
+
+    try:
+        page = Page.objects.get(id=page_id)
+        page.views += 1
+        page.save()
+        return redirect(page.url)
+    except Page.DoesNotExist:
+        print('Page with ID: {0} not found.'.format(page_id))
+        return HttpResponseRedirect(reverse('rango:index'))
